@@ -1,0 +1,6 @@
+gui\ExitManagerTest.class
+gui\MainApplicationFrameTest.class
+gui\ProfileManagerTest.class
+gui\GameVisualizerBoundaryTest.class
+log\LogWindowSourceTest$TestLogListener.class
+log\LogWindowSourceTest.class
