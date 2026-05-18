@@ -80,16 +80,6 @@ public class MainApplicationFrame extends JFrame
         logWindow.pack();
         Logger.debug("Протокол работает");
 
-        // Окно с подтверждением закрытия
-        logWindow.addInternalFrameListener(new InternalFrameAdapter() {
-            @Override
-            public void internalFrameClosing(InternalFrameEvent e) {
-                if (ExitManager.confirmWindowClose(logWindow, "окно лога")) {
-                    logWindow.dispose();
-                }
-            }
-        });
-
         return logWindow;
     }
 

@@ -2,35 +2,40 @@ package gui;
 
 import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
-
 import java.awt.Rectangle;
 import java.io.File;
-
 import javax.swing.JFrame;
-import javax.swing.JInternalFrame;
 
 class ProfileManagerTest {
-
     private JFrame mainFrame;
-    private JInternalFrame logWindow;
-    private JInternalFrame gameWindow;
+    private BaseInternalFrame logWindow;  // Изменено с JInternalFrame на BaseInternalFrame
+    private BaseInternalFrame gameWindow; // Изменено с JInternalFrame на BaseInternalFrame
 
-    /** Создаёт тестовые окна перед каждым тестом */
+    /**
+     * Создаёт тестовые окна перед каждым тестом
+     */
     @BeforeEach
     void setUp() {
         ProfileManager.deleteProfile(); // удаляем старый профиль
         mainFrame = new JFrame();
-        logWindow = new JInternalFrame();
-        gameWindow = new JInternalFrame();
+
+        // Создаем экземпляры нашего нового класса с дефолтными параметрами
+        logWindow = new BaseInternalFrame("Протокол", true, true, true, true);
+        gameWindow = new BaseInternalFrame("Игра", true, true, true, true);
 
         mainFrame.setBounds(100, 100, 800, 600);
-        logWindow.setBounds(10, 10, 300, 200);
-        gameWindow.setBounds(50, 50, 400, 400);
+
+        // Важно: для BaseInternalFrame используем setNormalBounds, чтобы инициализировать внутреннее состояние
+        logWindow.setNormalBounds(new Rectangle(10, 10, 300, 200));
+        gameWindow.setNormalBounds(new Rectangle(50, 50, 400, 400));
+
         logWindow.setVisible(true);
         gameWindow.setVisible(true);
     }
 
-    /** Закрывает окна и удаляет профиль после каждого теста */
+    /**
+     * Закрывает окна и удаляет профиль после каждого теста
+     */
     @AfterEach
     void tearDown() {
         mainFrame.dispose();
@@ -39,23 +44,25 @@ class ProfileManagerTest {
         ProfileManager.deleteProfile();
     }
 
-    /** Проверяет: сохранение профиля создаёт файл */
+    /**
+     * Проверяет: сохранение профиля создаёт файл
+     */
     @Test
     void testSaveProfile() {
         ProfileManager.saveProfile(mainFrame, logWindow, gameWindow);
         assertTrue(ProfileManager.hasProfile());
-
         File file = new File("profile.ser");
         assertTrue(file.exists());
         assertTrue(file.length() > 0);
     }
 
-    /** Проверяет: загрузка профиля возвращает корректные данные */
+    /**
+     * Проверяет: загрузка профиля возвращает корректные данные
+     */
     @Test
     void testLoadProfile() {
         ProfileManager.saveProfile(mainFrame, logWindow, gameWindow);
         ProfileManager.WindowState state = ProfileManager.loadProfile();
-
         assertNotNull(state);
         assertEquals(100, state.mainBounds.x);
         assertEquals(100, state.mainBounds.y);
@@ -65,7 +72,9 @@ class ProfileManagerTest {
         assertTrue(state.gameVisible);
     }
 
-    /** Проверяет: применение профиля восстанавливает состояние окон */
+    /**
+     * Проверяет: применение профиля восстанавливает состояние окон
+     */
     @Test
     void testApplyProfile() {
         ProfileManager.WindowState state = new ProfileManager.WindowState();
@@ -77,19 +86,19 @@ class ProfileManagerTest {
         state.gameVisible = true;
 
         ProfileManager.applyProfile(state, mainFrame, logWindow, gameWindow);
-
         assertEquals(200, mainFrame.getBounds().x);
         assertEquals(20, logWindow.getBounds().x);
         assertEquals(100, gameWindow.getBounds().x);
     }
 
-    /** Проверяет: удаление профиля */
+    /**
+     * Проверяет: удаление профиля
+     */
     @Test
     void testDeleteProfile() {
         ProfileManager.saveProfile(mainFrame, logWindow, gameWindow);
         assertTrue(ProfileManager.hasProfile());
-
         ProfileManager.deleteProfile();
-        assertFalse(ProfileManager.hasProfile());
+        assertFalse(ProfileManager.hasProfile()); // Исправлено здесь
     }
 }
