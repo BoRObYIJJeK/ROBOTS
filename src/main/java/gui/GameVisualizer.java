@@ -1,6 +1,7 @@
 package gui;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -8,6 +9,7 @@ import java.awt.geom.AffineTransform;
 import java.util.Timer;
 import java.util.TimerTask;
 import javax.swing.JPanel;
+import java.awt.Point;
 
 public class GameVisualizer extends JPanel {
     private final Timer m_timer = initTimer();
@@ -15,17 +17,23 @@ public class GameVisualizer extends JPanel {
         return new Timer("events generator", true);
     }
 
+    private Maze currentMaze = null; // По умолчанию лабиринта НЕТ (равен null)
+    private boolean gameRunning = true;
+
     private volatile double m_robotPositionX = 100;
     private volatile double m_robotPositionY = 100;
     private volatile double m_robotDirection = 0;
 
-    // Направление движения: -1 (влево/вверх), 0 (стоим), 1 (вправо/вниз)
     private volatile int moveX = 0;
     private volatile int moveY = 0;
 
-    private static final double maxVelocity = 0.15; // Слегка увеличили скорость для динамики клавиатуры
+    private static final double maxVelocity = 0.15;
+    private static final int ROBOT_RADIUS = 8;
 
     public GameVisualizer() {
+        // Устанавливаем дефолтный размер панели для пустого поля, пока лабиринт не загружен
+        setPreferredSize(new Dimension(800, 600));
+
         m_timer.schedule(new TimerTask() {
             @Override
             public void run() { onRedrawEvent(); }
@@ -37,10 +45,9 @@ public class GameVisualizer extends JPanel {
         }, 0, 10);
 
         setDoubleBuffered(true);
-        setFocusable(true); // Чтобы компонент мог принимать фокус клавиатуры
+        setFocusable(true);
     }
 
-    // Эти методы будут вызываться из GameWindow при нажатии клавиш
     public void setDirectionX(int dx) { this.moveX = dx; }
     public void setDirectionY(int dy) { this.moveY = dy; }
 
@@ -49,47 +56,87 @@ public class GameVisualizer extends JPanel {
     }
 
     protected void onModelUpdateEvent() {
-        // Если ни одна кнопка не зажата — робот просто стоит на месте
-        if (moveX == 0 && moveY == 0) {
-            return;
-        }
+        if (!gameRunning) return;
+        if (moveX == 0 && moveY == 0) return;
 
-        // Поворачиваем нос робота в сторону движения
         m_robotDirection = Math.atan2(moveY, moveX);
 
-        // Движение вперед по вектору
-        moveRobot(maxVelocity, 10);
+        if (currentMaze != null) {
+            double duration = 10.0;
+            double nextX = m_robotPositionX + maxVelocity * duration * moveX;
+            double nextY = m_robotPositionY + maxVelocity * duration * moveY;
+
+            if (canMoveTo(nextX, m_robotPositionY)) {
+                m_robotPositionX = nextX;
+            }
+            if (canMoveTo(m_robotPositionX, nextY)) {
+                m_robotPositionY = nextY;
+            }
+
+            Point currentCell = currentMaze.pixelToCell((int)m_robotPositionX, (int)m_robotPositionY);
+            if (currentMaze.isExit(currentCell.x, currentCell.y)) {
+                gameRunning = false;
+                log.Logger.debug("Робот достиг финиша!");
+                moveX = 0;
+                moveY = 0;
+                repaint();
+            }
+        } else {
+            // Движение без лабиринта (в рамках обычного окна)
+            double duration = 10.0;
+            double newX = m_robotPositionX + maxVelocity * duration * Math.cos(m_robotDirection);
+            double newY = m_robotPositionY + maxVelocity * duration * Math.sin(m_robotDirection);
+
+            java.awt.Rectangle bounds = getBounds();
+            if (bounds.width > 0 && bounds.height > 0) {
+                newX = applyLimits(newX, ROBOT_RADIUS, bounds.width - ROBOT_RADIUS);
+                newY = applyLimits(newY, ROBOT_RADIUS, bounds.height - ROBOT_RADIUS);
+            }
+            m_robotPositionX = newX;
+            m_robotPositionY = newY;
+        }
     }
 
-    private void moveRobot(double velocity, double duration) {
-        double newX = m_robotPositionX + velocity * duration * Math.cos(m_robotDirection);
-        double newY = m_robotPositionY + velocity * duration * Math.sin(m_robotDirection);
+    private boolean canMoveTo(double x, double y) {
+        if (currentMaze == null) return true;
+        return !isWallAt(x - ROBOT_RADIUS, y) &&
+                !isWallAt(x + ROBOT_RADIUS, y) &&
+                !isWallAt(x, y - ROBOT_RADIUS) &&
+                !isWallAt(x, y + ROBOT_RADIUS);
+    }
 
-        // Ограничение движения границами экрана (чтобы робот не улетал за поле)
-        int w = getWidth();
-        int h = getHeight();
-        int offset = 20;
+    private boolean isWallAt(double pixelX, double pixelY) {
+        if (currentMaze == null) return true;
+        Point cell = currentMaze.pixelToCell((int) pixelX, (int) pixelY);
 
-        if (w > 0 && h > 0) {
-            if (newX < offset) newX = offset;
-            if (newX > w - offset) newX = w - offset;
-            if (newY < offset) newY = offset;
-            if (newY > h - offset) newY = h - offset;
+        if (cell.y < 0 || cell.y >= currentMaze.walls.length ||
+                cell.x < 0 || cell.x >= currentMaze.walls[cell.y].length) {
+            return true;
         }
 
-        m_robotPositionX = newX;
-        m_robotPositionY = newY;
+        return currentMaze.isWall(cell.x, cell.y);
+    }
+
+    private static double applyLimits(double value, double min, double max) {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
     }
 
     private static int round(double value) {
-        return (int)(value + 0.5);
+        return (int) (value + 0.5);
     }
 
     @Override
-    public void paint(Graphics g) {
-        super.paint(g);
-        Graphics2D g2d = (Graphics2D)g;
-        drawRobot(g2d, m_robotDirection);
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D) g;
+
+        if (currentMaze != null) {
+            currentMaze.draw(g2d);
+        }
+
+        drawRobot(g2d, round(m_robotPositionX), round(m_robotPositionY), m_robotDirection);
     }
 
     private static void fillOval(Graphics g, int centerX, int centerY, int diam1, int diam2) {
@@ -100,24 +147,37 @@ public class GameVisualizer extends JPanel {
         g.drawOval(centerX - diam1 / 2, centerY - diam2 / 2, diam1, diam2);
     }
 
-    private void drawRobot(Graphics2D g, double direction) {
-        int x = round(m_robotPositionX);
-        int y = round(m_robotPositionY);
-
-        AffineTransform oldTransform = g.getTransform();
-        AffineTransform t = AffineTransform.getRotateInstance(direction, x, y);
-        g.setTransform(t);
+    private void drawRobot(Graphics2D g, int x, int y, double direction) {
+        AffineTransform old = g.getTransform();
+        g.rotate(direction, x, y);
 
         g.setColor(Color.MAGENTA);
-        fillOval(g, x, y, 30, 10);
+        fillOval(g, x, y, 24, 8);
         g.setColor(Color.BLACK);
-        drawOval(g, x, y, 30, 10);
+        drawOval(g, x, y, 24, 8);
 
         g.setColor(Color.WHITE);
-        fillOval(g, x + 10, y, 5, 5);
+        fillOval(g, x + 8, y, 4, 4);
         g.setColor(Color.BLACK);
-        drawOval(g, x + 10, y, 5, 5);
+        drawOval(g, x + 8, y, 4, 4);
 
-        g.setTransform(oldTransform);
+        g.setTransform(old);
+    }
+
+    public void setMaze(Maze maze) {
+        this.currentMaze = maze;
+        this.gameRunning = true;
+
+        // Пересчитываем размеры прокрутки ScrollPane под габариты нового лабиринта
+        setPreferredSize(new Dimension(maze.getTotalWidthPixels(), maze.getTotalHeightPixels()));
+        revalidate();
+
+        Point startPixel = maze.cellToPixel(maze.start.x, maze.start.y);
+        m_robotPositionX = startPixel.x;
+        m_robotPositionY = startPixel.y;
+        m_robotDirection = 0;
+        moveX = 0;
+        moveY = 0;
+        repaint();
     }
 }

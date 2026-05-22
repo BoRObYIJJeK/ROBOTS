@@ -60,4 +60,10 @@ public class GameWindow extends BaseInternalFrame {
         m_visualizer.setDirectionX(dx);
         m_visualizer.setDirectionY(dy);
     }
+
+
+    public void generateNewMaze() {
+        Maze newMaze = new Maze(50, 30);
+        m_visualizer.setMaze(newMaze);
+    }
 }

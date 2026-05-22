@@ -124,6 +124,7 @@ public class MainApplicationFrame extends JFrame
         menuBar.add(createFileMenu()); // Пункт меню "Выйти"
         menuBar.add(createLookAndFeelMenu());
         menuBar.add(createTestMenu());
+        menuBar.add(createMazeMenu());
         return menuBar;
     }
     private JMenu createLookAndFeelMenu()
@@ -189,5 +190,18 @@ public class MainApplicationFrame extends JFrame
         {
             // just ignore
         }
+    }
+
+    private JMenu createMazeMenu() {
+        JMenu mazeMenu = new JMenu("Лабиринт");
+        mazeMenu.setMnemonic(KeyEvent.VK_L);
+
+        JMenuItem newMazeItem = new JMenuItem("Новый лабиринт", KeyEvent.VK_N);
+        newMazeItem.addActionListener(e -> {
+            gameWindow.generateNewMaze();
+        });
+        mazeMenu.add(newMazeItem);
+
+        return mazeMenu;
     }
 }
