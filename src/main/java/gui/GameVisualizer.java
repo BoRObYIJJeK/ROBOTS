@@ -33,7 +33,6 @@ public class GameVisualizer extends JPanel {
     public GameVisualizer() {
         // Устанавливаем дефолтный размер панели для пустого поля, пока лабиринт не загружен
         setPreferredSize(new Dimension(800, 600));
-
         m_timer.schedule(new TimerTask() {
             @Override
             public void run() { onRedrawEvent(); }
@@ -43,10 +42,16 @@ public class GameVisualizer extends JPanel {
             @Override
             public void run() { onModelUpdateEvent(); }
         }, 0, 10);
-
         setDoubleBuffered(true);
         setFocusable(true);
     }
+
+    // Геттеры для считывания состояния менеджером GameProgressManager
+    public double getRobotX() { return m_robotPositionX; }
+    public double getRobotY() { return m_robotPositionY; }
+    public double getRobotDir() { return m_robotDirection; }
+    public boolean isGameRunning() { return gameRunning; }
+    public Maze getCurrentMaze() { return currentMaze; }
 
     public void setDirectionX(int dx) { this.moveX = dx; }
     public void setDirectionY(int dy) { this.moveY = dy; }
@@ -77,6 +82,10 @@ public class GameVisualizer extends JPanel {
             if (currentMaze.isExit(currentCell.x, currentCell.y)) {
                 gameRunning = false;
                 log.Logger.debug("Робот достиг финиша!");
+
+                // ИСПРАВЛЕНО: Стираем файл прогресса, так как текущая игра успешно завершена
+                GameProgressManager.deleteProgress();
+
                 moveX = 0;
                 moveY = 0;
                 repaint();
@@ -85,7 +94,7 @@ public class GameVisualizer extends JPanel {
             // Движение без лабиринта (в рамках обычного окна)
             double duration = 10.0;
             double newX = m_robotPositionX + maxVelocity * duration * Math.cos(m_robotDirection);
-            double newY = m_robotPositionY + maxVelocity * duration * Math.sin(m_robotDirection);
+            double newY = m_robotPositionX + maxVelocity * duration * Math.sin(m_robotDirection);
 
             java.awt.Rectangle bounds = getBounds();
             if (bounds.width > 0 && bounds.height > 0) {
@@ -97,23 +106,36 @@ public class GameVisualizer extends JPanel {
         }
     }
 
+    /**
+     * Восстанавливает полное состояние игры из сохраненного прогресса
+     */
+    public void restoreGameState(Maze maze, double rx, double ry, double rdir, boolean running) {
+        this.currentMaze = maze;
+        this.m_robotPositionX = rx;
+        this.m_robotPositionY = ry;
+        this.m_robotDirection = rdir;
+        this.gameRunning = running;
+
+        if (maze != null) {
+            setPreferredSize(new Dimension(maze.getTotalWidthPixels(), maze.getTotalHeightPixels()));
+        } else {
+            setPreferredSize(new Dimension(800, 600));
+        }
+        revalidate();
+        repaint();
+    }
+
     private boolean canMoveTo(double x, double y) {
         if (currentMaze == null) return true;
-        return !isWallAt(x - ROBOT_RADIUS, y) &&
-                !isWallAt(x + ROBOT_RADIUS, y) &&
-                !isWallAt(x, y - ROBOT_RADIUS) &&
-                !isWallAt(x, y + ROBOT_RADIUS);
+        return !isWallAt(x - ROBOT_RADIUS, y) && !isWallAt(x + ROBOT_RADIUS, y) && !isWallAt(x, y - ROBOT_RADIUS) && !isWallAt(x, y + ROBOT_RADIUS);
     }
 
     private boolean isWallAt(double pixelX, double pixelY) {
         if (currentMaze == null) return true;
         Point cell = currentMaze.pixelToCell((int) pixelX, (int) pixelY);
-
-        if (cell.y < 0 || cell.y >= currentMaze.walls.length ||
-                cell.x < 0 || cell.x >= currentMaze.walls[cell.y].length) {
+        if (cell.y < 0 || cell.y >= currentMaze.walls.length || cell.x < 0 || cell.x >= currentMaze.walls[cell.y].length) {
             return true;
         }
-
         return currentMaze.isWall(cell.x, cell.y);
     }
 
@@ -131,11 +153,9 @@ public class GameVisualizer extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
-
         if (currentMaze != null) {
             currentMaze.draw(g2d);
         }
-
         drawRobot(g2d, round(m_robotPositionX), round(m_robotPositionY), m_robotDirection);
     }
 
@@ -150,28 +170,22 @@ public class GameVisualizer extends JPanel {
     private void drawRobot(Graphics2D g, int x, int y, double direction) {
         AffineTransform old = g.getTransform();
         g.rotate(direction, x, y);
-
         g.setColor(Color.MAGENTA);
         fillOval(g, x, y, 24, 8);
         g.setColor(Color.BLACK);
         drawOval(g, x, y, 24, 8);
-
         g.setColor(Color.WHITE);
         fillOval(g, x + 8, y, 4, 4);
         g.setColor(Color.BLACK);
         drawOval(g, x + 8, y, 4, 4);
-
         g.setTransform(old);
     }
 
     public void setMaze(Maze maze) {
         this.currentMaze = maze;
         this.gameRunning = true;
-
-        // Пересчитываем размеры прокрутки ScrollPane под габариты нового лабиринта
         setPreferredSize(new Dimension(maze.getTotalWidthPixels(), maze.getTotalHeightPixels()));
         revalidate();
-
         Point startPixel = maze.cellToPixel(maze.start.x, maze.start.y);
         m_robotPositionX = startPixel.x;
         m_robotPositionY = startPixel.y;

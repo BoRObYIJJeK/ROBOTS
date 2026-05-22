@@ -60,8 +60,15 @@ public class MainApplicationFrame extends JFrame
 
     private void checkAndRestoreProfile() {
         if (ProfileManager.hasProfile() && ProfileManager.askRestoreProfile(this)) {
+            // 1. Восстанавливаем положение и размеры окон
             ProfileManager.WindowState state = ProfileManager.loadProfile();
             ProfileManager.applyProfile(state, this, logWindow, gameWindow);
+
+            // 2. Восстанавливаем лабиринт, стены и положение робота
+            if (GameProgressManager.hasProgress() && gameWindow != null) {
+                GameProgressManager.GameState progressState = GameProgressManager.loadProgress();
+                GameProgressManager.applyProgress(progressState, gameWindow.getVisualizer());
+            }
         }
     }
 

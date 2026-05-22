@@ -63,7 +63,11 @@ public class GameWindow extends BaseInternalFrame {
 
 
     public void generateNewMaze() {
+        GameProgressManager.deleteProgress();
         Maze newMaze = new Maze(50, 30);
         m_visualizer.setMaze(newMaze);
+    }
+    public GameVisualizer getVisualizer() {
+        return m_visualizer;
     }
 }

@@ -13,11 +13,19 @@ public class ExitManager {
     public static void confirmExit(JFrame frame, BaseInternalFrame logWindow, BaseInternalFrame gameWindow) {
         if (confirmAction(frame, "Выйти из приложения?")) {
             if (ProfileManager.askSaveProfile(frame)) {
+                // 1. Сохраняем состояние окон
                 ProfileManager.saveProfile(frame, logWindow, gameWindow);
+
+                // 2. ДОБАВЛЕНО: Достаем визуализатор и сохраняем игровой прогресс (лабиринт и робота)
+                if (gameWindow instanceof GameWindow) {
+                    GameVisualizer visualizer = ((GameWindow) gameWindow).getVisualizer();
+                    GameProgressManager.saveProgress(visualizer);
+                }
             }
             System.exit(0);
         }
     }
+
 
     public static boolean confirmWindowClose(JInternalFrame window, String title) {
         return confirmAction(window, "Закрыть " + title + "?");
