@@ -16,8 +16,8 @@ public class Maze {
     public Point end;
     private static final Random random = new Random();
 
-    // ДОБАВЛЕНО: Приватный пустой конструктор для воссоздания лабиринта без повторной генерации
-    public Maze() {}
+    // Приватный пустой конструктор для воссоздания лабиринта без повторной генерации
+    private Maze() {}
 
     public Maze(int width, int height) {
         // Первое число — строго горизонталь (X), второе — вертикаль (Y)
@@ -29,7 +29,7 @@ public class Maze {
     }
 
     /**
-     * ДОБАВЛЕНО: Фабричный метод для сборки лабиринта из сохраненной битовой строки в JSON.
+     * Фабричный метод для сборки лабиринта из сохраненной битовой строки в JSON.
      * Используется в GameProgressManager.
      */
     public static Maze restoreFromProfile(int width, int height, String wallsData, int startX, int startY, int endX, int endY) {
@@ -172,7 +172,7 @@ public class Maze {
     public int getTotalWidthPixels() { return width * cellSize; }
     public int getTotalHeightPixels() { return height * cellSize; }
 
-    // ДОБАВЛЕНО: Геттеры для ширины и высоты, чтобы GameProgressManager мог считывать размеры
+    // Геттеры для ширины и высоты, чтобы GameProgressManager мог считывать размеры
     public int getWidth() { return width; }
     public int getHeight() { return height; }
 

@@ -83,7 +83,7 @@ public class GameVisualizer extends JPanel {
                 gameRunning = false;
                 log.Logger.debug("Робот достиг финиша!");
 
-                // ИСПРАВЛЕНО: Стираем файл прогресса, так как текущая игра успешно завершена
+                // Стираем файл прогресса, так как текущая игра успешно завершена
                 GameProgressManager.deleteProgress();
 
                 moveX = 0;

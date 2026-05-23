@@ -114,7 +114,7 @@ public class ProfileManager {
         } catch (Exception e) {}
     }
 
-    // ИСПРАВЛЕНО: Быстрый и безопасный разбор прямоугольника по запятым без регулярных выражений
+    // Разбор прямоугольника по запятым без регулярных выражений
     private static Rectangle parseRect(String json, String key) {
         try {
             String arrayContent = extractArrayContent(json, key);
@@ -128,7 +128,7 @@ public class ProfileManager {
         }
     }
 
-    // ИСПРАВЛЕНО: Быстрый разбор логических флагов по их индексам
+    // Разбор логических флагов по их индексам
     private static boolean parseBool(String json, String key, int index) {
         try {
             String arrayContent = extractArrayContent(json, key);
@@ -139,7 +139,7 @@ public class ProfileManager {
         }
     }
 
-    // ИСПРАВЛЕНО: Надежный хелпер для вырезания содержимого внутри квадратных скобок [...]
+    // Хелпер для вырезания содержимого внутри квадратных скобок [...]
     private static String extractArrayContent(String json, String key) {
         int start = json.indexOf("\"" + key + "\": [") + key.length() + 5;
         int end = json.indexOf("]", start);

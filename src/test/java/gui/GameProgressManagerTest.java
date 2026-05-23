@@ -19,7 +19,7 @@ class GameProgressManagerTest {
         // Создаем визуализатор и инициализируем в нем тестовый лабиринт
         visualizer = new GameVisualizer();
 
-        // ИСПРАВЛЕНО: Используем стандартный конструктор после отката кода
+        // Используем стандартный конструктор после отката кода
         Maze testMaze = new Maze(requestedWidth, requestedHeight);
         visualizer.setMaze(testMaze);
     }
@@ -96,7 +96,7 @@ class GameProgressManagerTest {
         assertEquals(originalMaze.end.x, loadedState.mazeEndX);
         assertEquals(originalMaze.end.y, loadedState.mazeEndY);
 
-        // ИСПРАВЛЕНО: Переписано на loadedState.mazeStartY, и восстановление идет через фабричный метод из Maze
+        // Переписано на loadedState.mazeStartY, и восстановление идет через фабричный метод из Maze
         Maze restoredMaze = Maze.restoreFromProfile(
                 loadedState.mazeWidth, loadedState.mazeHeight, loadedState.mazeWallsData,
                 loadedState.mazeStartX, loadedState.mazeStartY, loadedState.mazeEndX, loadedState.mazeEndY

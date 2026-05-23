@@ -1,6 +1,5 @@
 package gui;
 
-import java.awt.Point;
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Files;
@@ -41,7 +40,7 @@ public class GameProgressManager {
 
             Maze maze = visualizer.getCurrentMaze();
             s.hasMaze = (maze != null);
-
+            // Сжатие лабиринта в строку
             if (s.hasMaze) {
                 s.mazeWidth = maze.getWidth();
                 s.mazeHeight = maze.getHeight();
@@ -64,7 +63,7 @@ public class GameProgressManager {
                 s.mazeEndX = 0;   s.mazeEndY = 0;
             }
 
-            // ИСПРАВЛЕНО: Явно форматируем JSON с US-локалью, чтобы числа ВСЕГДА писались через точку
+            // Явно форматируем JSON с US-локалью, чтобы числа ВСЕГДА писались через точку
             String json = String.format(Locale.US,
                     "{\n" +
                             "  \"robot\": [ %.4f, %.4f, %.4f, %b ],\n" +
@@ -91,7 +90,7 @@ public class GameProgressManager {
             String content = new String(Files.readAllBytes(Paths.get(PROGRESS_FILE)));
             GameState state = new GameState();
 
-            // ИСПРАВЛЕНО: Безопасное чтение робота через Scanner без привязки к индексам строк
+            // Безопасное чтение робота через Scanner без привязки к индексам строк
             String robotData = extractArrayContent(content, "robot");
             Scanner robotScanner = new Scanner(robotData).useLocale(Locale.US).useDelimiter("[\\s,\\]\\[]+");
             if (robotScanner.hasNextDouble()) state.robotX = robotScanner.nextDouble();
@@ -100,7 +99,7 @@ public class GameProgressManager {
             if (robotScanner.hasNextBoolean()) state.gameRunning = robotScanner.nextBoolean();
             robotScanner.close();
 
-            // ИСПРАВЛЕНО: Безопасное чтение лабиринта
+            // Безопасное чтение лабиринта
             String mazeData = extractArrayContent(content, "maze");
             Scanner mazeScanner = new Scanner(mazeData).useLocale(Locale.US).useDelimiter("[\\s,\\]\\[]+");
             if (mazeScanner.hasNextBoolean()) state.hasMaze = mazeScanner.nextBoolean();

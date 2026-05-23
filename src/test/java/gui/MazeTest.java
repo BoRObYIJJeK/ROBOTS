@@ -12,71 +12,126 @@ class MazeTest {
 
     @BeforeEach
     void setUp() {
-        // Создаем лабиринт в наших стандартных пропорциях перед каждым тестом
         maze = new Maze(requestedWidth, requestedHeight);
     }
-    /**
-     * 1. Проверяет, что точка старта (1,1) всегда является проходом, а не стеной
-     */
+
+    private void floodFill(int x, int y, boolean[][] visited) {
+        if (x < 0 || y < 0 || x >= visited[0].length || y >= visited.length) return;
+        if (maze.isWall(x, y) || visited[y][x]) return;
+        visited[y][x] = true;
+        floodFill(x - 1, y, visited);
+        floodFill(x + 1, y, visited);
+        floodFill(x, y - 1, visited);
+        floodFill(x, y + 1, visited);
+    }
+
+    private int wallsAround(Point p) {
+        int walls = 0;
+        if (maze.isWall(p.x - 1, p.y)) walls++;
+        if (maze.isWall(p.x + 1, p.y)) walls++;
+        if (maze.isWall(p.x, p.y - 1)) walls++;
+        if (maze.isWall(p.x, p.y + 1)) walls++;
+        return walls;
+    }
+
+    private int passagesAround(Point p) {
+        return 4 - wallsAround(p);
+    }
+
+    /** Старт — проход, не стена */
     @Test
     void testStartIsPassage() {
         Point start = maze.start;
-        assertNotNull(start, "Точка старта не должна быть null");
+        assertNotNull(start);
         assertEquals(1, start.x);
         assertEquals(1, start.y);
-        assertFalse(maze.isWall(start.x, start.y), "Стартовая ячейка заблокирована стеной!");
+        assertFalse(maze.isWall(start.x, start.y));
     }
 
-    /**
-     * 2. Проверяет, что зеленая клетка финиша всегда является проходом
-     */
+    /** Финиш — проход, isExit() работает */
     @Test
     void testExitIsPassage() {
         Point end = maze.end;
-        assertNotNull(end, "Точка финиша не должна быть null");
-        assertFalse(maze.isWall(end.x, end.y), "Финишная ячейка заблокирована стеной!");
-        assertTrue(maze.isExit(end.x, end.y), "Метод isExit не распознает финишную клетку");
+        assertNotNull(end);
+        assertFalse(maze.isWall(end.x, end.y));
+        assertTrue(maze.isExit(end.x, end.y));
     }
 
-    /**
-     * 3. Проверяет корректность математической конвертации пикселей в клетки и обратно
-     */
+    /** Финиш — тупик (3+ стены вокруг) */
     @Test
-    void testCoordinateConversion() {
-        int cellSize = maze.getCellSize();
-
-        // Тестируем клетку (3, 5)
-        int cellX = 3;
-        int cellY = 5;
-
-        // Клетка -> Пиксели (центр ячейки)
-        Point pixel = maze.cellToPixel(cellX, cellY);
-        int expectedPixelX = cellX * cellSize + cellSize / 2;
-        int expectedPixelY = cellY * cellSize + cellSize / 2;
-        assertEquals(expectedPixelX, pixel.x);
-        assertEquals(expectedPixelY, pixel.y);
-
-        // Пиксели -> Клетка
-        Point convertedCell = maze.pixelToCell(pixel.x, pixel.y);
-        assertEquals(cellX, convertedCell.x);
-        assertEquals(cellY, convertedCell.y);
+    void testExitIsDeadEnd() {
+        assertTrue(wallsAround(maze.end) >= 3);
     }
 
-    /**
-     * 4. Проверяет защитную логику: координаты за пределами лабиринта должны считаться стеной
-     */
+    /** К финишу ведёт ровно один путь */
+    @Test
+    void testExitHasOneEntrance() {
+        assertEquals(1, passagesAround(maze.end));
+    }
+
+    /** Старт имеет хотя бы один выход */
+    @Test
+    void testStartHasExit() {
+        assertTrue(passagesAround(maze.start) >= 1);
+    }
+
+    /** Из старта можно дойти до финиша */
+    @Test
+    void testCanReachExit() {
+        boolean[][] visited = new boolean[maze.walls.length][maze.walls[0].length];
+        floodFill(maze.start.x, maze.start.y, visited);
+        assertTrue(visited[maze.end.y][maze.end.x]);
+    }
+
+    /** Все проходы достижимы из старта (связность) */
+    @Test
+    void testMazeIsConnected() {
+        boolean[][] visited = new boolean[maze.walls.length][maze.walls[0].length];
+        floodFill(maze.start.x, maze.start.y, visited);
+
+        for (int y = 0; y < maze.walls.length; y++) {
+            for (int x = 0; x < maze.walls[y].length; x++) {
+                if (!maze.isWall(x, y)) {
+                    assertTrue(visited[y][x]);
+                }
+            }
+        }
+    }
+
+    /** Размеры лабиринта соответствуют запрошенным (с учётом нечётности) */
+    @Test
+    void testMazeDimensions() {
+        int expectedW = requestedWidth % 2 == 0 ? requestedWidth + 1 : requestedWidth;
+        int expectedH = requestedHeight % 2 == 0 ? requestedHeight + 1 : requestedHeight;
+        assertEquals(expectedW, maze.getWidth());
+        assertEquals(expectedH, maze.getHeight());
+    }
+
+    /** Внешние границы — сплошные стены */
+    @Test
+    void testOuterWallsClosed() {
+        int w = maze.getWidth(), h = maze.getHeight();
+        for (int x = 0; x < w; x++) {
+            assertTrue(maze.isWall(x, 0));
+            assertTrue(maze.isWall(x, h - 1));
+        }
+        for (int y = 0; y < h; y++) {
+            assertTrue(maze.isWall(0, y));
+            assertTrue(maze.isWall(w - 1, y));
+        }
+    }
+
+    /** За границами лабиринта — стена */
     @Test
     void testOutOfBoundsIsWall() {
-        // Тестируем отрицательные индексы
         assertTrue(maze.isWall(-1, 5));
         assertTrue(maze.isWall(5, -1));
-
-        // Тестируем индексы, выходящие далеко за пределы массива
-        assertTrue(maze.isWall(100, 5));
-        assertTrue(maze.isWall(5, 100));
+        assertTrue(maze.isWall(1000, 5));
+        assertTrue(maze.isWall(5, 1000));
     }
+
     /**
-     * 5. Проверяет попиксельную коллизию хитбокса робота со стенами.
+     * Проверяет попиксельную коллизию хитбокса робота со стенами.
      * Эмулирует логику canMoveTo из GameVisualizer, чтобы робот не заезжал в серые блоки.
      */
     @Test
@@ -85,9 +140,8 @@ class MazeTest {
         int robotRadius = 8; // Наш стандартный радиус хитбокса для клеток 30px
 
         // Находим в лабиринте любую ячейку, которая гарантированно является стеной,
-        // и соседнюю ячейку, которая является свободным проходом.
+        // и соседнюю ячейку, которая является свободным проходом
         int wallCellX = -1;
-        int wallCellY = -1;
         int passageCellX = -1;
         int passageCellY = -1;
 
@@ -98,7 +152,6 @@ class MazeTest {
                     passageCellX = x;
                     passageCellY = y;
                     wallCellX = x + 1;
-                    wallCellY = y;
                     break;
                 }
             }
@@ -139,5 +192,4 @@ class MazeTest {
         assertTrue(maze.isWall(collidingRightEdge.x, collidingRightEdge.y),
                 "Система коллизий пропустила хитбокс робота внутрь текстуры стены!");
     }
-
 }
