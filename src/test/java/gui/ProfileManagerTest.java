@@ -32,16 +32,28 @@ class ProfileManagerTest {
     @BeforeEach
     void setUp() {
         ProfileManager.deleteProfile();
+
         mainFrame = new JFrame();
+        mainFrame.setBounds(100, 100, 800, 600);
+
+        // Создаем рабочий стол (контейнер) для внутренних окон, чтобы Swing не сбрасывал их размеры
+        javax.swing.JDesktopPane desktopPane = new javax.swing.JDesktopPane();
+        mainFrame.setContentPane(desktopPane);
 
         logWindow = new BaseInternalFrame("Протокол", true, true, true, true);
         gameWindow = new BaseInternalFrame("Игра", true, true, true, true);
 
-        mainFrame.setBounds(100, 100, 800, 600);
+        // Обязательно добавляем окна в контейнер до того, как менять их геометрию
+        desktopPane.add(logWindow);
+        desktopPane.add(gameWindow);
 
         // Устанавливаем нормальные границы
         logWindow.setNormalBounds(new Rectangle(10, 10, 300, 200));
         gameWindow.setNormalBounds(new Rectangle(50, 50, 400, 400));
+
+        // Применяем границы и к текущему физическому состоянию окон
+        logWindow.setBounds(logWindow.getNormalBounds());
+        gameWindow.setBounds(gameWindow.getNormalBounds());
 
         logWindow.setVisible(true);
         gameWindow.setVisible(true);

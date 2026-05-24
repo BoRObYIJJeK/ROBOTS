@@ -123,4 +123,31 @@ class GameProgressManagerTest {
 
         assertFalse(GameProgressManager.hasProgress(), "Файл прогресса не удалился!");
     }
+
+    /**
+     * 5. Проверяет, что выбранный уровень сложности и
+     * сырая строка данных тумана корректно сериализуются в JSON файл и десериализуются из него.
+     */
+    @Test
+    void testFogDataSerializationInJson() {
+        int expectedDifficulty = 2; // Берем динамический режим для проверки
+        visualizer.setDifficulty(expectedDifficulty);
+
+        // Делаем шаг, чтобы внутри визуализатора обновилось состояние тумана
+        visualizer.getFogOfWar().updatePixels(150, 150, expectedDifficulty);
+        String beforeSavePixels = visualizer.getFogOfWar().getFogPixelsString(expectedDifficulty);
+
+        // Акт 1: Сохраняем состояние всей игры на диск через менеджер прогресса
+        GameProgressManager.saveProgress(visualizer);
+
+        // Акт 2: Читаем получившийся JSON файл обратно в память
+        GameProgressManager.GameState loadedState = GameProgressManager.loadProgress();
+
+        // Ассерты: проверяем исключительно корректность работы парсера JSON
+        assertNotNull(loadedState, "Менеджер не смог прочитать файл game_progress.json");
+        assertEquals(expectedDifficulty, loadedState.difficulty, "Код сложности исказился при записи/чтении JSON");
+        assertNotNull(loadedState.fogPixelsData, "Поле попиксельных данных тумана в GameState оказалось null");
+        assertEquals(beforeSavePixels, loadedState.fogPixelsData, "Строка пикселей тумана в JSON не совпадает с исходной");
+    }
+
 }

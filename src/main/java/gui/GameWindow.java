@@ -70,4 +70,5 @@ public class GameWindow extends BaseInternalFrame {
     public GameVisualizer getVisualizer() {
         return m_visualizer;
     }
+
 }

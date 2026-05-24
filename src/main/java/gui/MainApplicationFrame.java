@@ -60,14 +60,29 @@ public class MainApplicationFrame extends JFrame
 
     private void checkAndRestoreProfile() {
         if (ProfileManager.hasProfile() && ProfileManager.askRestoreProfile(this)) {
-            // 1. Восстанавливаем положение и размеры окон
+            // 1. Восстанавливаем геометрию окон (размеры и координаты)
             ProfileManager.WindowState state = ProfileManager.loadProfile();
             ProfileManager.applyProfile(state, this, logWindow, gameWindow);
 
-            // 2. Восстанавливаем лабиринт, стены и положение робота
+            // 2. Восстанавливаем лабиринт, робота и туман войны
             if (GameProgressManager.hasProgress() && gameWindow != null) {
                 GameProgressManager.GameState progressState = GameProgressManager.loadProgress();
-                GameProgressManager.applyProgress(progressState, gameWindow.getVisualizer());
+
+                if (progressState != null) {
+                    // Восстанавливаем игру и туман внутри визуализатора
+                    GameProgressManager.applyProgress(progressState, gameWindow.getVisualizer());
+
+                    // Автоматически переключаем галочку в верхнем меню на нужную сложность
+                    try {
+                        JMenuBar menuBar = this.getJMenuBar();
+                        JMenu mazeMenu = menuBar.getMenu(3); // Меню "Лабиринт"
+                        JMenu diffMenu = (JMenu) mazeMenu.getItem(2); // Подменю "Сложность"
+                        JRadioButtonMenuItem targetItem = (JRadioButtonMenuItem) diffMenu.getItem(progressState.difficulty);
+                        targetItem.setSelected(true);
+                    } catch (Exception e) {
+                        // Игнорируем ошибку, если структура меню изменилась
+                    }
+                }
             }
         }
     }
@@ -208,6 +223,46 @@ public class MainApplicationFrame extends JFrame
             gameWindow.generateNewMaze();
         });
         mazeMenu.add(newMazeItem);
+
+        // Разделитель в меню
+        mazeMenu.addSeparator();
+
+        // Создаем подменю "Сложность"
+        JMenu difficultyMenu = new JMenu("Сложность");
+
+        // Группа кнопок, чтобы одновременно можно было выбрать только один режим
+        ButtonGroup difficultyGroup = new ButtonGroup();
+
+        // 1-й вариант
+        JRadioButtonMenuItem normalMode = new JRadioButtonMenuItem("1. Обычный лабиринт", true);
+        normalMode.addActionListener(e -> {
+            if (gameWindow != null) gameWindow.getVisualizer().setDifficulty(0);
+        });
+
+        // 2-й вариант
+        JRadioButtonMenuItem staticFogMode = new JRadioButtonMenuItem("2. Туман войны (исследуемый)");
+        staticFogMode.addActionListener(e -> {
+            if (gameWindow != null) gameWindow.getVisualizer().setDifficulty(1);
+        });
+
+        // 3-й вариант
+        JRadioButtonMenuItem dynamicFogMode = new JRadioButtonMenuItem("3. Туман войны (вокруг робота)");
+        dynamicFogMode.addActionListener(e -> {
+            if (gameWindow != null) gameWindow.getVisualizer().setDifficulty(2);
+        });
+
+        // Объединяем кнопки в группу
+        difficultyGroup.add(normalMode);
+        difficultyGroup.add(staticFogMode);
+        difficultyGroup.add(dynamicFogMode);
+
+        // Добавляем кнопки в подменю
+        difficultyMenu.add(normalMode);
+        difficultyMenu.add(staticFogMode);
+        difficultyMenu.add(dynamicFogMode);
+
+        // Добавляем подменю в основное меню "Лабиринт"
+        mazeMenu.add(difficultyMenu);
 
         return mazeMenu;
     }
